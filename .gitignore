@@ -50,3 +50,7 @@ _agent/
 _agents/
 brain/
 tmp/
+coverage/
+skills/
+*.pub
+id_rsa

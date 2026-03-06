@@ -3,6 +3,8 @@ import { describe, it, expect, vi } from "vitest";
 // Mock config
 vi.mock("../config/index.js", () => ({
     appConfig: { 
+        dbPath: ":memory:",
+        telegramToken: "test",
         fsPaths: ["C:/Temp"], 
         vscodePath: "code" 
     }
@@ -31,7 +33,7 @@ describe("Tools Registry", () => {
         if (shellTool) {
             const res = await shellTool.handler({ command: "echo 'hello world'" } as any) as any;
             expect(res.status).toBe("pending_human_approval");
-            expect(res.raw_command).toBe("echo 'hello world'");
+            expect(res.toolArgs.command).toBe("echo 'hello world'");
             expect(res.message).toBeDefined();
         }
     });

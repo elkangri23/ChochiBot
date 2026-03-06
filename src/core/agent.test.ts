@@ -9,13 +9,16 @@ vi.mock("../adapters/logger/index.js", () => ({
 
 // Mock config
 vi.mock("../config/index.js", () => ({
-    appConfig: { 
+    appConfig: {
+        telegramToken: "test-token",
+        allowedUserIds: [12345678],
         llm: { 
             provider: "groq", 
             groqModel: "test-groq", 
             openrouterModel: "test-or", 
             ollamaModel: "test-ollama" 
         }, 
+        dbPath: ":memory:",
         fsPaths: ["C:/Temp"], 
         vscodePath: "code" 
     }

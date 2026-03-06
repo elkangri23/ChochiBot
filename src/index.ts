@@ -1,5 +1,6 @@
 import { appConfig } from "./config/index.js";
 import { initDb } from "./memory/db.js";
+import { loadExternalSkills } from "./tools/index.js";
 import { GroqProvider } from "./adapters/llm/GroqProvider.js";
 import { AgentLoop } from "./core/agent.js";
 import { createBot } from "./adapters/telegram/bot.js";
@@ -8,8 +9,20 @@ import { OpenRouterProvider } from "./adapters/llm/OpenRouterProvider.js";
 import { OllamaProvider } from "./adapters/llm/OllamaProvider.js";
 
 async function getLLMProvider() {
-    console.log(`🤖 Buscando motor de Inteligencia Artificial...`);
+    console.log(`🤖 Buscando motor de Inteligencia Artificial (Preferencia: ${appConfig.llm.provider})...`);
+
+    // Priorizar el proveedor configurado si existe
+    if (appConfig.llm.provider === "openrouter" && appConfig.llm.openrouterApiKey) {
+        console.log(`✅ ¡OpenRouter seleccionado manualmente con ${appConfig.llm.openrouterModel}!`);
+        return new OpenRouterProvider(appConfig.llm.openrouterApiKey, appConfig.llm.openrouterModel);
+    }
     
+    if (appConfig.llm.provider === "groq" && appConfig.llm.groqApiKey) {
+        console.log(`✅ ¡Groq seleccionado manualmente con ${appConfig.llm.groqModel}!`);
+        return new GroqProvider(appConfig.llm.groqApiKey, appConfig.llm.groqModel);
+    }
+
+    // Si no hay preferencia o no funciona, probar el orden de siempre
     // 1. Intentar Ollama
     console.log(`Testando Ollama local: ${appConfig.llm.ollamaModel}...`);
     const ollamaProvider = new OllamaProvider(appConfig.llm.ollamaBaseUrl, appConfig.llm.ollamaModel);
@@ -19,15 +32,13 @@ async function getLLMProvider() {
         return ollamaProvider;
     }
 
-    // 2. Fallback a Groq
-    console.log(`⚠️ Ollama no disponible. Probando fallback a Groq con ${appConfig.llm.groqModel}...`);
+    // 2. Groq
     if (appConfig.llm.groqApiKey) {
         console.log(`✅ ¡Groq Provider seleccionado con modelo ${appConfig.llm.groqModel}!`);
         return new GroqProvider(appConfig.llm.groqApiKey, appConfig.llm.groqModel);
     }
 
-    // 3. Fallback a OpenRouter
-    console.log(`⚠️ Groq no configurado. Probando fallback a OpenRouter con ${appConfig.llm.openrouterModel}...`);
+    // 3. OpenRouter
     if (appConfig.llm.openrouterApiKey) {
         console.log(`✅ ¡OpenRouter seleccionado con modelo ${appConfig.llm.openrouterModel}!`);
         return new OpenRouterProvider(appConfig.llm.openrouterApiKey, appConfig.llm.openrouterModel);
@@ -39,6 +50,7 @@ async function getLLMProvider() {
 async function main() {
     console.log("Inicializando base de datos...");
     initDb();
+    await loadExternalSkills();
 
     const provider = await getLLMProvider();
 

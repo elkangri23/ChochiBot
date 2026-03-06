@@ -1,15 +1,49 @@
 import { LLMMessage, LLMProvider } from "../adapters/llm/LLMProvider.js";
 import { toolsRegistry, getToolsDefinitions } from "../tools/index.js";
 import { logToolUsage } from "../adapters/logger/index.js";
+import { getEmbedding } from "./embeddings.js";
+import { searchSemanticMemories } from "../memory/db.js";
 
-const MAX_ITERATIONS = 5;
+const MAX_ITERATIONS = 10;
 
 export class AgentLoop {
     constructor(private llm: LLMProvider) {}
 
-    async run(messages: LLMMessage[], userId: number): Promise<{ response: LLMMessage, pausedForApproval?: any }> {
+    async run(messages: LLMMessage[], userId: number): Promise<{ 
+        response: LLMMessage, 
+        pausedForApproval?: any, 
+        currentTurnTools?: LLMMessage[] 
+    }> {
         let iterations = 0;
         let currentMessages = [...messages];
+        let currentTurnTools: LLMMessage[] = [];
+
+        // --- RAG (Retrieval-Augmented Generation) ---
+        // Buscamos memorias relevantes basándonos en el último mensaje del usuario
+        const lastUserMsg = [...messages].reverse().find(m => m.role === "user");
+        if (lastUserMsg && lastUserMsg.content) {
+            try {
+                const queryVector = await getEmbedding(lastUserMsg.content);
+                const relevantMemories = searchSemanticMemories(queryVector, 3);
+                
+                if (relevantMemories.length > 0) {
+                    const contextText = relevantMemories
+                        .map(m => `- ${m.content}`)
+                        .join("\n");
+                    
+                    const ragPrompt = `\n[CONTEXTO RELEVANTE RECUPERADO DE TU MEMORIA]:\n${contextText}\nUse this context if it helps to answer the user accurately.`;
+                    
+                    // Inyectamos el contexto en el system prompt o como un mensaje de sistema adicional
+                    const systemMsg = currentMessages.find(m => m.role === "system");
+                    if (systemMsg) {
+                        systemMsg.content += ragPrompt;
+                    }
+                }
+            } catch (e) {
+                console.error("Error en RAG:", e);
+                // Continuamos sin RAG si falla para no romper la experiencia
+            }
+        }
 
         while (iterations < MAX_ITERATIONS) {
             iterations++;
@@ -39,7 +73,8 @@ export class AgentLoop {
                 try {
                     if (!toolDef) throw new Error(`Tool ${fnName} not found.`);
 
-                    const result = await toolDef.handler(toolArgs);
+                    // Pass userId to the tool handler for context
+                    const result = await toolDef.handler({ ...toolArgs, userId });
                     
                     // 3. Handle PAUSE for Human Approval
                     if (result && typeof result === "object" && "status" in result && result.status === "pending_human_approval") {
@@ -57,29 +92,33 @@ export class AgentLoop {
 
                     // 4. Handle tool SUCCESS/ERROR
                     const outputText = JSON.stringify(result);
-                    currentMessages.push({
+                    const toolResultMsg: LLMMessage = {
                         role: "tool",
                         content: outputText,
                         name: fnName,
                         tool_call_id: call.id
-                    });
+                    };
+                    currentMessages.push(toolResultMsg);
+                    currentTurnTools.push(toolResultMsg);
                     
                     logToolUsage(fnName, userId, JSON.stringify(toolArgs), outputText, "success");
 
                 } catch (error: any) {
-                    currentMessages.push({
+                    const toolResultMsg: LLMMessage = {
                         role: "tool",
                         content: `Error: ${error.message}`,
                         name: fnName,
                         tool_call_id: call.id
-                    });
+                    };
+                    currentMessages.push(toolResultMsg);
+                    currentTurnTools.push(toolResultMsg);
                     logToolUsage(fnName, userId, JSON.stringify(toolArgs), error.message, "error");
                 }
             }
 
             // Terminate iteration if approval is needed
             if (requiresApproval) {
-                return { response: assistantMessage, pausedForApproval: requiresApproval };
+                return { response: assistantMessage, pausedForApproval: requiresApproval, currentTurnTools };
             }
         }
 

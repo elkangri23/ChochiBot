@@ -4,6 +4,15 @@ import { LLMMessage } from "../llm/LLMProvider.js";
 import { AgentLoop } from "../../core/agent.js";
 import { toolsRegistry } from "../../tools/index.js";
 import { logToolUsage } from "../logger/index.js";
+import { getSystemPrompt } from "../../core/prompts.js";
+
+// Función para escapar caracteres de MarkdownV1 (el que usa parse_mode: "Markdown")
+function escapeMarkdown(text: string): string {
+    // MarkdownV1 es más permisivo pero a veces falla con caracteres anidados.
+    // Para simplificar y corregir el error del usuario, escaparemos los caracteres problemáticos
+    // que suelen romper el parseo si no tienen cierre.
+    return text.replace(/([_*\[\]()~`>#+\-=|{}.!])/g, '\\$1');
+}
 
 // Session/Memory maps
 const userHistories = new Map<number, LLMMessage[]>();
@@ -66,11 +75,7 @@ export function createBot(agent: AgentLoop) {
             // Ejecución REAL con bypassApproval
             const result = await toolDef.handler({ ...pending.toolArgs, bypassApproval: true });
             
-            // --- PERSISTENCIA DE HISTORIAL COHERENTE ---
-            // 1. Añadimos el mensaje del asistente que pidió la herramienta
-            pending.history.push(pending.assistantMessage);
-            
-            // 2. Añadimos el resultado real de la herramienta
+            // --- PERSISTENCIA DE RESULTADO ---
             const toolOutput = JSON.stringify(result);
             pending.history.push({
                 role: "tool",
@@ -99,8 +104,7 @@ export function createBot(agent: AgentLoop) {
         await ctx.answerCallbackQuery("Acción rechazada.");
         await ctx.editMessageText("❌ Acción cancelada por el usuario.");
 
-        // Persistimos el par incluso en rechazo para que el LLM sepa que fue denegado
-        pending.history.push(pending.assistantMessage);
+        // Persistimos solo el tool con error para denegar
         pending.history.push({
             role: "tool",
             content: JSON.stringify({ status: "denied", message: "El usuario ha rechazado la ejecución de esta herramienta." }),
@@ -119,27 +123,19 @@ export function createBot(agent: AgentLoop) {
     return bot;
 }
 
-async function handleAgentExecution(ctx: Context, agent: AgentLoop, text: string, userId: number) {
-    if (!userHistories.has(userId)) {
+import { getOrCreateUser, getMemories } from "../../memory/db.js";
+
+async function handleAgentExecution(ctx: Context, agent: AgentLoop, text: string, userId: number, isPlanner: boolean = false) {
+    // 1. Obtener/Crear usuario en la base de datos
+    const user = getOrCreateUser(userId, ctx.from?.first_name || "Colega");
+    const memories = getMemories(user.id);
+    const memoryString = memories.map(m => `- [${m.type}]: ${m.content}`).join("\n");
+
+    if (!userHistories.has(userId) || isPlanner) {
         userHistories.set(userId, [
             { 
                 role: "system", 
-                content: `Eres ChochiBot, el colega hacker definitivo. 😎 Directo, eficaz y experto en herramientas de sistema.
-                
-                ENTORNO:
-                - Windows.
-                - Escritorio: C:/Users/amoles/Desktop
-                - Temp: C:/Temp
-                
-                ⚠️ REGLAS CRÍTICAS:
-                1. NO expliques herramientas. ÚSALAS técnicamente.
-                2. Nombres exactos de herramientas (USA SOLO ESTOS): 
-                   - get_current_time (para la hora)
-                   - filesystem (leer/escribir/listar con 'action' y 'filePath')
-                   - shell_secure (ejecutar comandos)
-                   - pc_integration (abrir VSCode)
-                3. Sé breve y eficaz. Habla de tú, estilo hacker.
-                4. NO escribas JSON de herramientas en el chat.` 
+                content: getSystemPrompt(memoryString, isPlanner)
             }
         ]);
     }
@@ -154,6 +150,13 @@ async function handleAgentExecution(ctx: Context, agent: AgentLoop, text: string
         
         if (result.pausedForApproval) {
             const { toolCallId, toolName, toolArgs, message } = result.pausedForApproval;
+            
+            // Persistir pensamiento y resultados parciales (si hay)
+            history.push(result.response);
+            if (result.currentTurnTools && result.currentTurnTools.length > 0) {
+                history.push(...result.currentTurnTools);
+            }
+            
             pendingApprovals.set(toolCallId, { 
                 userId, 
                 toolName, 
@@ -174,7 +177,7 @@ async function handleAgentExecution(ctx: Context, agent: AgentLoop, text: string
                 `${emoji} *¡OJITO! CONTROL DE SEGURIDAD*\n\n` +
                 `Oye jefe, necesito ejecutar \`${toolName}\` para seguir.\n\n` +
                 `*Argumentos:* \`${JSON.stringify(toolArgs)}\` \n\n` +
-                `_${message}_`,
+                `_${escapeMarkdown(message)}_`,
                 { reply_markup: keyboard, parse_mode: "Markdown" }
             );
             return;
@@ -186,7 +189,7 @@ async function handleAgentExecution(ctx: Context, agent: AgentLoop, text: string
                 ctx.chat!.id, 
                 waitMsg.message_id, 
                 result.response.content,
-                { parse_mode: "Markdown" }
+                { parse_mode: undefined }
             );
         }
         
@@ -204,6 +207,13 @@ async function resumeAgentExecution(ctx: Context, agent: AgentLoop, history: LLM
         
         if (result.pausedForApproval) {
             const { toolCallId, toolName, toolArgs, message } = result.pausedForApproval;
+            
+            // Persistir pensamiento y resultados parciales (si hay)
+            history.push(result.response);
+            if (result.currentTurnTools && result.currentTurnTools.length > 0) {
+                history.push(...result.currentTurnTools);
+            }
+
             pendingApprovals.set(toolCallId, { 
                 userId, 
                 toolName, 
@@ -220,7 +230,7 @@ async function resumeAgentExecution(ctx: Context, agent: AgentLoop, history: LLM
             await ctx.api.editMessageText(ctx.chat!.id, waitMsg.message_id, 
                 `${emoji} *OTRA PETICIÓN EN COLA*\n\n` +
                 `Esto se complica, necesito otro permiso para \`${toolName}\`:\n\n` +
-                `_${message}_`,
+                `_${escapeMarkdown(message)}_`,
                 { reply_markup: keyboard, parse_mode: "Markdown" });
             return;
         }
@@ -230,7 +240,7 @@ async function resumeAgentExecution(ctx: Context, agent: AgentLoop, history: LLM
                 ctx.chat!.id, 
                 waitMsg.message_id, 
                 result.response.content,
-                { parse_mode: "Markdown" }
+                { parse_mode: undefined }
             );
         }
         history.push(result.response);

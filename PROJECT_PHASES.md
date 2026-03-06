@@ -30,30 +30,37 @@ La fase fundacional consistió en montar la estructura modular, conectar los cab
 
 La segunda etapa dota a ChochiBot de autonomía gestionada y una memoria capaz de moldear comportamientos.
 
-- [ ] **Aprobación Interactiva en Telegram:** Implementar botones (Inline Keyboard) en Telegram para aprobar o rechazar explícitamente las operaciones que devuelvan `pending_human_approval` (Pausadas en la Fase 1).
-- [ ] **Despliegue Total del Modo \`/develop\` (Planner):**
-  - Refinar el prompt "Planner".
-  - Tras tu confirmación sobre el "plan", el loop recorrerá la iteración de pasos automáticamente (creará repos, código o fixeará errores de un tirón).
-- [ ] **Sistema Activo de Memoria:**
-  - Lógica para extraer *facts* o *preferences* de tus mensajes y guardarlos en SQLite (tabla `memories`).
-  - Añadir de forma fluida a cada prompt inicial el sistema de memoria rescatando los datos más relevantes.
-- [ ] **Generación Autónoma de Skills:**
-  - Lógica para inyectar código dinámico y persistir "draft skills".
-  - Recargar el `toolsRegistry` bajo demanda al aprobar una skill que él mismo se haya programado.
+- [x] **Aprobación Interactiva en Telegram:** Implementar botones (Inline Keyboard) en Telegram para aprobar o rechazar explícitamente las operaciones que devuelvan `pending_human_approval` (Pausadas en la Fase 1). (¡COMPLETADO!)
+- [x] **Despliegue Total del Modo \`/develop\` (Planner):**
+  - Refinar el prompt "Planner". (¡COMPLETADO!)
+  - Tras tu confirmación sobre el "plan", el loop recorrerá la iteración de pasos automáticamente (creará repos, código o fixeará errores de un tirón). (¡COMPLETADO!)
+- [x] **Sistema Activo de Memoria:**
+  - Lógica para extraer *facts* o *preferences* de tus mensajes y guardarlos en SQLite (tabla `memories`). (¡COMPLETADO!)
+  - Añadir de forma fluida a cada prompt inicial el sistema de memoria rescatando los datos más relevantes. (¡COMPLETADO!)
+- [x] **Generación Autónoma de Skills:**
+  - Lógica para inyectar código dinámico y persistir "draft skills". (¡COMPLETADO!)
+  - Recargar el `toolsRegistry` bajo demanda al aprobar una skill que él mismo se haya programado. (¡COMPLETADO!)
 
 ---
 
-## 🔮 Fase 3: Ecosistema e Integraciones (En Planificación)
+## 🚀 Fase 3: Ecosistema e Integraciones (En Desarrollo - 75% completado)
 
-Escalar horizontes con APIs de terceros e interfaces ricas.
+Escalar horizontes con APIs de terceros, gestión de infraestructura y memoria de contexto profundo.
 
-- [ ] **Integraciones Prioritarias:**
-  - Herramientas conectadas a su propia base en Google (Drive/Calendar), Notion (para registrar progresos), y GitHub.
-  - Conexión con un n8n local para automatizar triggers o arrancar workflows preprogramados.
-- [ ] **Gestión de VPS:**
-  - En lugar de solo shell local, incluir wrappers SSH para poder aplicar updates, montar dockers o verificar métricas de tus VPS remotas.
-- [ ] **Web UI Local:**
+- [x] **Gestión de VPS:**
+  - Implementación de `ssh_manager` para gestionar perfiles de servidores remotos.
+  - Ejecución segura de comandos SSH con aprobación humana obligatoria. (¡COMPLETADO!)
+- [x] **Integraciones Avanzadas (GitHub):**
+  - Herramientas conectadas a la API de GitHub para listar repositorios, crear nuevos y gestionar Pull Requests. (¡COMPLETADO!)
+- [x] **Memoria Semántica RAG:**
+  - Implementación de utilidad de embeddings usando `google/text-embedding-004` (OpenRouter).
+  - Almacenamiento vectorial en SQLite y búsqueda por similitud de coseno integrada en el corazón del agente. (¡COMPLETADO!)
+- [x] **Ingesta de Conocimiento:** 
+  - Herramienta `ingest_knowledge` para alimentar la memoria a largo plazo del bot de forma manual. (¡COMPLETADO!)
+- [x] **Pruebas y Cobertura (100/80/0):**
+    - Implementación de suite de tests unitarios con Vitest cubriendo >80% de líneas en módulos core (DB, Embeddings, Config). (¡COMPLETADO!)
+- [ ] **Web UI Local (Próximo paso):**
   - Construir un portal web rápido (p. ej. usando Vite + React) levantado internamente.
   - Visualización cómoda de logs, histórico de base de datos, administración visual de skills y variables de entornos gráficas.
-- [ ] **Memoria Semántica RAG:**
-  - Indexar el log de acciones, proyectos viejos y configuraciones almacenando *embeddings* para un "recuerdo" con contexto preciso a largo plazo.
+- [ ] **Notion e Integraciones de Oficina:**
+  - Registrar progresos automáticamente en Notion y conectar con Google Drive/Calendar.

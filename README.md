@@ -5,10 +5,12 @@ ChochiBot es un agente de IA automatizado, de desarrollo enfocado, que opera des
 ## 🚀 Características Principales
 
 - **Conexión Exclusiva:** Sólo atiende a los IDs de Telegram que pertenezcan a las listas de permitidos (`TELEGRAM_ALLOWED_USER_IDS`).
-- **Agnóstico de LLMs:** Puede pensar con Groq, OpenRouter o modelos locales vía Ollama.
-- **Acceso Local Reestringuido:** Tools incluidas para operar la consola `shell_secure`, sistema de archivos y HTTP.
-- **Agent Loop Seguro:** Evalúa cuándo ejecutar herramientas de forma automática y cuándo pausar para pedir tu aprobación ante operaciones peligrosas.
-- **Auto-Extensible (Próximamente):** Diseñado para generar, probar y activar sus propias habilidades (skills) sobre la marcha.
+- **Agnóstico de LLMs:** Pensamiento distribuido mediante Groq, OpenRouter o modelos locales (Ollama).
+- **Auto-Extensible:** Capacidad para generar, probar y activar sus propias habilidades (*skills*) dinámicamente.
+- **Gestión de Infraestructura:** Operaciones SSH seguras y avanzadas para gestionar tus servidores VPS.
+- **GitHub Avanzado:** Capacidad para interactuar con repositorios y gestionar Pull Requests.
+- **Memoria Semántica de Contexto Profundo (RAG):** Recuperación inteligente de información pasada para respuestas más precisas y coherentes.
+- **Loop de Agente con Aprobación Humana:** Autonomía supervisada para mayor seguridad del sistema.
 
 ## 🛠️ Stack Tecnológico
 
