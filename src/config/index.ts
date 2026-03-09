@@ -21,7 +21,7 @@ export const appConfig = {
         groqModel: getEnv("GROQ_MODEL") || "llama-3.3-70b-versatile",
         openrouterModel: getEnv("OPENROUTER_MODEL") || "google/gemini-2.0-flash-thinking-exp:free",
         openrouterEmbeddingModel: getEnv("OPENROUTER_EMBEDDING_MODEL") || "google/text-embedding-004",
-        ollamaModel: getEnv("OLLAMA_MODEL") || "llama3.3",
+        ollamaModel: getEnv("OLLAMA_MODEL") || "qwen2.5-coder:14b",
         groqApiKey: getEnv("GROQ_API_KEY"),
         openrouterApiKey: getEnv("OPENROUTER_API_KEY"),
         ollamaBaseUrl: getEnv("OLLAMA_BASE_URL", false) || "http://127.0.0.1:11434"

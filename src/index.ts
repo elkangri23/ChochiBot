@@ -9,21 +9,9 @@ import { OpenRouterProvider } from "./adapters/llm/OpenRouterProvider.js";
 import { OllamaProvider } from "./adapters/llm/OllamaProvider.js";
 
 async function getLLMProvider() {
-    console.log(`🤖 Buscando motor de Inteligencia Artificial (Preferencia: ${appConfig.llm.provider})...`);
+    console.log(`🤖 Buscando motor de Inteligencia Artificial (Preferencia: Ollama, Fallback: ${appConfig.llm.provider})...`);
 
-    // Priorizar el proveedor configurado si existe
-    if (appConfig.llm.provider === "openrouter" && appConfig.llm.openrouterApiKey) {
-        console.log(`✅ ¡OpenRouter seleccionado manualmente con ${appConfig.llm.openrouterModel}!`);
-        return new OpenRouterProvider(appConfig.llm.openrouterApiKey, appConfig.llm.openrouterModel);
-    }
-    
-    if (appConfig.llm.provider === "groq" && appConfig.llm.groqApiKey) {
-        console.log(`✅ ¡Groq seleccionado manualmente con ${appConfig.llm.groqModel}!`);
-        return new GroqProvider(appConfig.llm.groqApiKey, appConfig.llm.groqModel);
-    }
-
-    // Si no hay preferencia o no funciona, probar el orden de siempre
-    // 1. Intentar Ollama
+    // 1. Intentar siempre Ollama primero (Hardcoded o desde env)
     console.log(`Testando Ollama local: ${appConfig.llm.ollamaModel}...`);
     const ollamaProvider = new OllamaProvider(appConfig.llm.ollamaBaseUrl, appConfig.llm.ollamaModel);
     const hasOllama = await ollamaProvider.isAvailable();
@@ -32,19 +20,31 @@ async function getLLMProvider() {
         return ollamaProvider;
     }
 
-    // 2. Groq
+    // Si Ollama falla, revisar preferencia configurada
+    if (appConfig.llm.provider === "openrouter" && appConfig.llm.openrouterApiKey) {
+        console.log(`✅ ¡OpenRouter seleccionado como fallback manual con ${appConfig.llm.openrouterModel}!`);
+        return new OpenRouterProvider(appConfig.llm.openrouterApiKey, appConfig.llm.openrouterModel);
+    }
+    
+    if (appConfig.llm.provider === "groq" && appConfig.llm.groqApiKey) {
+        console.log(`✅ ¡Groq seleccionado como fallback manual con ${appConfig.llm.groqModel}!`);
+        return new GroqProvider(appConfig.llm.groqApiKey, appConfig.llm.groqModel);
+    }
+
+    // Si no hay preferencia o falló, probar los demás
+    // 2. Groq falló antes pero intentamos de nuevo si no había preferencia. Acá asumimos que si no es preferencia, aún funciona:
     if (appConfig.llm.groqApiKey) {
-        console.log(`✅ ¡Groq Provider seleccionado con modelo ${appConfig.llm.groqModel}!`);
+        console.log(`✅ ¡Groq Provider seleccionado como último fallback con modelo ${appConfig.llm.groqModel}!`);
         return new GroqProvider(appConfig.llm.groqApiKey, appConfig.llm.groqModel);
     }
 
     // 3. OpenRouter
     if (appConfig.llm.openrouterApiKey) {
-        console.log(`✅ ¡OpenRouter seleccionado con modelo ${appConfig.llm.openrouterModel}!`);
+        console.log(`✅ ¡OpenRouter seleccionado como último fallback con modelo ${appConfig.llm.openrouterModel}!`);
         return new OpenRouterProvider(appConfig.llm.openrouterApiKey, appConfig.llm.openrouterModel);
     }
 
-    throw new Error("❌ Error crítico: Ningún motor LLM ha podido inicializarse. Por favor revisa tu .env.");
+    throw new Error("❌ Error crítico: Ningún motor LLM ha podido inicializarse. Asegúrate de configurar las API Keys o instalar el modelo de Ollama o correr su servicio localmente.");
 }
 
 async function main() {
