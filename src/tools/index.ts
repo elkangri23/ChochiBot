@@ -445,22 +445,39 @@ export const handler = async (args: any) => {
 export let toolsRegistry: any[] = [...staticTools];
 
 export async function loadExternalSkills() {
-    const skillsDir = path.resolve(process.cwd(), "src/skills");
-    if (!fs.existsSync(skillsDir)) return;
-
-    const files = fs.readdirSync(skillsDir).filter(f => f.endsWith(".ts"));
+    // Try both TypeScript (development) and JavaScript (production) skills
+    const skillsDirs = [
+        path.resolve(process.cwd(), "dist/skills"), // Compiled JS files
+        path.resolve(process.cwd(), "src/skills")   // TS files for development
+    ];
+    
     toolsRegistry = [...staticTools];
 
-    for (const file of files) {
-        try {
-            const skillPath = path.join(skillsDir, file);
-            const skillUrl = `file://${skillPath.replace(/\\/g, "/")}`;
-            const skill = await import(`${skillUrl}?t=${Date.now()}`);
-            if (skill.definition && skill.handler) {
-                toolsRegistry.push({ ...skill.definition, handler: skill.handler });
+    for (const skillsDir of skillsDirs) {
+        if (!fs.existsSync(skillsDir)) continue;
+        
+        const extensions = skillsDir.includes("dist") ? [".js"] : [".ts"];
+        
+        for (const ext of extensions) {
+            const files = fs.readdirSync(skillsDir).filter(f => f.endsWith(ext));
+            
+            for (const file of files) {
+                try {
+                    const skillPath = path.join(skillsDir, file);
+                    const skillUrl = `file://${skillPath.replace(/\\/g, "/")}`;
+                    const skill = await import(`${skillUrl}?t=${Date.now()}`);
+                    if (skill.definition && skill.handler) {
+                        // Check if this skill already exists to avoid duplicates
+                        const existing = toolsRegistry.find(t => t.name === skill.definition.name);
+                        if (!existing) {
+                            toolsRegistry.push({ ...skill.definition, handler: skill.handler });
+                            console.log(`✅ Loaded skill: ${skill.definition.name}`);
+                        }
+                    }
+                } catch (e) {
+                    console.error(`Error loading skill ${file}:`, e);
+                }
             }
-        } catch (e) {
-            console.error(`Error loading skill ${file}:`, e);
         }
     }
 }

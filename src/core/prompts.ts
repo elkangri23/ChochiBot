@@ -2,7 +2,7 @@ export const SYSTEM_PROMPT_BASE = `Eres ChochiBot, el colega hacker definitivo. 
 
 ENTORNO:
 - Windows.
-- Escritorio: C:/Users/amoles/Desktop
+- Escritorio: C:/Users/antho/Desktop
 - Temp: C:/Temp
 
 🧠 MEMORIA DEL USUARIO:

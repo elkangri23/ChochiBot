@@ -26,13 +26,36 @@ ChochiBot es un agente de IA automatizado, de desarrollo enfocado, que opera des
    npm install
    ```
 
-2. Configura las variables de entorno:
-   Renombra o copia el archivo `.env.example` a `.env` y rellena los datos correspondientes:
+2. **🔐 Configuración Segura de las Variables de Entorno:**
+   
+   **IMPORTANTE:** Este proyecto usa variables de entorno para proteger credenciales sensibles.
+   
+   ```bash
+   # Copia el template de configuración
+   cp .env.example .env
+   
+   # Configura tus credenciales de forma segura
+   # NUNCA agregues archivos client_secret*.json al repositorio
+   ```
+   
+   **Variables esenciales en .env:**
    ```env
+   # Telegram Bot
    TELEGRAM_BOT_TOKEN="tu_token_de_botfather"
    TELEGRAM_ALLOWED_USER_IDS="12345678,87654321"
+   
+   # LLM Providers  
    GROQ_API_KEY="tu_clave_de_groq"
+   
+   # Google OAuth (para Google Workspace skills)
+   GOOGLE_CLIENT_ID="tu-client-id.apps.googleusercontent.com"
+   GOOGLE_CLIENT_SECRET="GOCSPX-tu-client-secret"
+   GOOGLE_PROJECT_ID="tu-project-id"
    ```
+   
+   📚 **Para configuración Google Workspace:** Ver [SECURITY.md](./SECURITY.md)
+   
+   🛠️ **Script automático:** `node setup-credentials.mjs [path-to-google-json]`
 
 3. Modos de Ejecución:
    - **Desarrollo (Hot Reload):** Utiliza este modo mientras cambies el código fuente.

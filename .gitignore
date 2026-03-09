@@ -19,6 +19,27 @@ Thumbs.db
 **/.env
 **/.env.local
 
+# OAuth & Google Credentials (CRITICAL SECURITY)
+client_secret*.json
+*client_secret*.json
+credentials.json
+service_account_key.json
+oauth_credentials.json
+**/*client_secret*.json
+**/*credentials*.json
+skills/client_secret*.json
+src/skills/client_secret*.json
+credentials/
+**/*credentials/
+
+# API Keys & Tokens
+*.key
+*.pem
+*.p12
+*.pfx
+token.json
+refresh_token.json
+
 # Database & Data
 data/
 *.sqlite
