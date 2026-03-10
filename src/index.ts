@@ -1,3 +1,12 @@
+// Suppress punycode deprecation warning from Node.js internals
+process.removeAllListeners('warning');
+process.on('warning', (warning) => {
+    if (warning.name === 'DeprecationWarning' && warning.message.includes('punycode')) {
+        return; // Ignore punycode deprecation warnings
+    }
+    console.warn(warning.name, warning.message);
+});
+
 import { appConfig } from "./config/index.js";
 import { initDb } from "./memory/db.js";
 import { loadExternalSkills } from "./tools/index.js";

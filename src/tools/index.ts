@@ -12,18 +12,19 @@ const execAsync = util.promisify(exec);
 const staticTools: any[] = [
     {
         name: "create_skill",
-        description: "Crea una nueva herramienta (skill) para el bot escribiendo código TypeScript. El código debe ser un handler que acepte parámetros y devuelva un objeto. Úsalo para ampliar tus propias capacidades.",
+        description: "EXTREMADAMENTE IMPORTANTE: Usa esta herramienta siempre que el usuario te pida crear una nueva función, habilidad o capacidad. Escribe código TypeScript que implemente un handler. El código debe ser una cadena que contenga una función de flecha (args) => { ... } o async (args) => { ... }.",
         parameters: {
             type: "object",
             properties: {
-                skillName: { type: "string", description: "Nombre de la nueva herramienta (ej: 'github_search')" },
-                description: { type: "string", description: "Descripción clara de lo que hace la herramienta" },
-                parameters: { type: "object", description: "Esquema JSON de los parámetros de la herramienta" },
-                code: { type: "string", description: "Código TypeScript del handler. Debe seguir el formato (args) => { ... }" },
-                bypassApproval: { type: "boolean" }
+                skillName: { type: "string", description: "Nombre único (ej: 'mysql_query')" },
+                description: { type: "string", description: "Qué hace la skill de forma resumida" },
+                parameters: { type: "object", description: "Esquema JSON de los argumentos que recibirá" },
+                code: { type: "string", description: "EL CÓDIGO REAL. Debe ser una función válida: '(args) => { ... }'. NOTA: Si usas librerías externas como 'mysql', usa 'require' dentro del código." },
+                bypassApproval: { type: "boolean", description: "Omitir aprobación (solo si el usuario ya lo autorizó verbalmente)" }
             },
             required: ["skillName", "description", "parameters", "code"]
         },
+
         handler: async ({ skillName, description, parameters, code, bypassApproval }: any) => {
             if (!bypassApproval) {
                 return { 
@@ -447,8 +448,8 @@ export let toolsRegistry: any[] = [...staticTools];
 export async function loadExternalSkills() {
     // Try both TypeScript (development) and JavaScript (production) skills
     const skillsDirs = [
-        path.resolve(process.cwd(), "dist/skills"), // Compiled JS files
-        path.resolve(process.cwd(), "src/skills")   // TS files for development
+        path.resolve(process.cwd(), "src/skills"),   // TS files for development
+        path.resolve(process.cwd(), "dist/skills")  // Compiled JS files
     ];
     
     toolsRegistry = [...staticTools];

@@ -153,8 +153,8 @@ async function handleAgentExecution(ctx: Context, agent: AgentLoop, text: string
             
             // Persistir pensamiento y resultados parciales (si hay)
             history.push(result.response);
-            if (result.currentTurnTools && result.currentTurnTools.length > 0) {
-                history.push(...result.currentTurnTools);
+            if (result.intermediateMessages && result.intermediateMessages.length > 0) {
+                history.push(...result.intermediateMessages);
             }
             
             pendingApprovals.set(toolCallId, { 
@@ -193,6 +193,9 @@ async function handleAgentExecution(ctx: Context, agent: AgentLoop, text: string
             );
         }
         
+        if (result.intermediateMessages && result.intermediateMessages.length > 0) {
+            history.push(...result.intermediateMessages);
+        }
         history.push(result.response);
         
     } catch (e: any) {
@@ -210,8 +213,8 @@ async function resumeAgentExecution(ctx: Context, agent: AgentLoop, history: LLM
             
             // Persistir pensamiento y resultados parciales (si hay)
             history.push(result.response);
-            if (result.currentTurnTools && result.currentTurnTools.length > 0) {
-                history.push(...result.currentTurnTools);
+            if (result.intermediateMessages && result.intermediateMessages.length > 0) {
+                history.push(...result.intermediateMessages);
             }
 
             pendingApprovals.set(toolCallId, { 
@@ -242,6 +245,9 @@ async function resumeAgentExecution(ctx: Context, agent: AgentLoop, history: LLM
                 result.response.content,
                 { parse_mode: undefined }
             );
+        }
+        if (result.intermediateMessages && result.intermediateMessages.length > 0) {
+            history.push(...result.intermediateMessages);
         }
         history.push(result.response);
     } catch (e: any) {

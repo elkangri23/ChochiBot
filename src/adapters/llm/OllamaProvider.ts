@@ -29,7 +29,8 @@ export class OllamaProvider implements LLMProvider {
             return newMsg;
         });
         
-        console.log("SENDING TO OLLAMA:", JSON.stringify(formattedMessages, null, 2));
+        console.log('Sending to Ollama:', JSON.stringify(messages, null, 2));
+
 
         const payload: any = {
             model: this.model,

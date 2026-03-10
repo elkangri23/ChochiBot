@@ -72,6 +72,6 @@ _agents/
 brain/
 tmp/
 coverage/
-skills/
+/skills/
 *.pub
 id_rsa

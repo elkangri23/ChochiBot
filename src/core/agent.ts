@@ -12,11 +12,11 @@ export class AgentLoop {
     async run(messages: LLMMessage[], userId: number): Promise<{ 
         response: LLMMessage, 
         pausedForApproval?: any, 
-        currentTurnTools?: LLMMessage[] 
+        intermediateMessages?: LLMMessage[] 
     }> {
         let iterations = 0;
         let currentMessages = [...messages];
-        let currentTurnTools: LLMMessage[] = [];
+        let intermediateMessages: LLMMessage[] = [];
 
         // --- RAG (Retrieval-Augmented Generation) ---
         // Buscamos memorias relevantes basándonos en el último mensaje del usuario
@@ -55,11 +55,13 @@ export class AgentLoop {
             const toolCalls = assistantMessage.tool_calls;
             if (!toolCalls || toolCalls.length === 0) {
                 // Done - no tools requested
-                return { response: assistantMessage };
+                return { response: assistantMessage, intermediateMessages };
             }
 
-            // Add the assistant's thought process to local loop memory
+            // Add the assistant's thought process to local loop memory and tracking
             currentMessages.push(assistantMessage);
+            intermediateMessages.push(assistantMessage);
+
 
             let requiresApproval = null;
             
@@ -91,7 +93,13 @@ export class AgentLoop {
                     }
 
                     // 4. Handle tool SUCCESS/ERROR
-                    const outputText = JSON.stringify(result);
+                    let outputText: string;
+                    if (result && typeof result === "object" && "formatted_output" in result) {
+                        outputText = String(result.formatted_output);
+                    } else {
+                        outputText = JSON.stringify(result);
+                    }
+
                     const toolResultMsg: LLMMessage = {
                         role: "tool",
                         content: outputText,
@@ -99,7 +107,8 @@ export class AgentLoop {
                         tool_call_id: call.id
                     };
                     currentMessages.push(toolResultMsg);
-                    currentTurnTools.push(toolResultMsg);
+
+                    intermediateMessages.push(toolResultMsg);
                     
                     logToolUsage(fnName, userId, JSON.stringify(toolArgs), outputText, "success");
 
@@ -111,14 +120,14 @@ export class AgentLoop {
                         tool_call_id: call.id
                     };
                     currentMessages.push(toolResultMsg);
-                    currentTurnTools.push(toolResultMsg);
+                    intermediateMessages.push(toolResultMsg);
                     logToolUsage(fnName, userId, JSON.stringify(toolArgs), error.message, "error");
                 }
             }
 
             // Terminate iteration if approval is needed
             if (requiresApproval) {
-                return { response: assistantMessage, pausedForApproval: requiresApproval, currentTurnTools };
+                return { response: assistantMessage, pausedForApproval: requiresApproval, intermediateMessages };
             }
         }
 
